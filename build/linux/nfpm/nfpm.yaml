@@ -3,26 +3,26 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "yamp.exe"
+name: "YAMP"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "0.0.1"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A yamp application"
-vendor: "My Company"
+description: "Yet Another Music Player"
+vendor: "The OwO Company"
 homepage: "https://wails.io"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/yamp.exe"
-    dst: "/usr/local/bin/yamp.exe"
+  - src: "./bin/YAMP"
+    dst: "/usr/local/bin/YAMP"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/yamp.exe.png"
-  - src: "./build/linux/yamp.exe.desktop"
-    dst: "/usr/share/applications/yamp.exe.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/YAMP.png"
+  - src: "./build/linux/YAMP.desktop"
+    dst: "/usr/share/applications/YAMP.desktop"
 
 # Default dependencies for Debian 12/Ubuntu 22.04+ with WebKit 4.1
 depends:
