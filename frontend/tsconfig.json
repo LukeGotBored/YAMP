@@ -25,7 +25,9 @@
     "src/**/*.d.ts",
     "src/**/*.js",
     "src/**/*.svelte",
-    "bindings",
     "src/main.ts"
+  ],
+  "exclude": [
+    "bindings"
   ]
 }
