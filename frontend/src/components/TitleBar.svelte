@@ -8,8 +8,22 @@
     } from "phosphor-svelte";
     import { Window, Events } from "@wailsio/runtime";
     import { onMount } from "svelte";
+    import { ItemTab } from "./TitleBar";
 
-    let isMaximized = false;
+    const {
+        on_select,
+        tabs = [],
+    }: {
+        on_select: (item_name: string) => void;
+        tabs?: ItemTab[];
+    } = $props();
+
+    let isMaximized = $state(false);
+    let selectedTab = $derived(tabs ? tabs[0].id : "");
+
+    export function currentTab() {
+        return selectedTab;
+    }
 
     onMount(() => {
         Window.IsMaximised().then((state) => (isMaximized = state));
@@ -49,18 +63,27 @@
     </div>
     <div class="tb-separator"></div>
     <div class="tb-tabs">
-        <button class="tb-tab">Home</button>
-        <button class="tb-tab">Library</button>
-        <button class="tb-tab">Albums</button>
-        <button class="tb-tab">Artists</button>
-        <button class="tb-tab">Playlists</button>
+        {#each tabs as tab}
+            {@const isActive = tab.id === selectedTab}
+            <button
+                class="tb-tab"
+                class:active={isActive}
+                onclick={() => {
+                    on_select(tab.id);
+                    selectedTab = tab.id;
+                }}
+            >
+                {tab.label}
+            </button>
+        {/each}
     </div>
+
     <div class="wc">
-        <button class="wc-btn wc-minimize" on:click={Window.Minimise}>
+        <button class="wc-btn wc-minimize" onclick={Window.Minimise}>
             <MinusIcon />
         </button>
 
-        <button class="wc-btn wc-maximize" on:click={toggle}>
+        <button class="wc-btn wc-maximize" onclick={toggle}>
             {#if isMaximized}
                 <CardsIcon />
             {:else}
@@ -68,7 +91,7 @@
             {/if}
         </button>
 
-        <button class="wc-btn wc-close" on:click={Window.Close}>
+        <button class="wc-btn wc-close" onclick={Window.Close}>
             <XIcon />
         </button>
     </div>
@@ -111,19 +134,49 @@
     }
 
     .tb-tabs {
+        --wails-draggable: no-drag;
         display: flex;
         flex-direction: row;
         height: 100%;
-        gap: 25px;
-        margin-left: 25px;
+        margin-left: 12.5px;
+    }
+
+    .tb-tab {
+        opacity: 0.5;
+        position: relative;
+        transition: var(--t-fast);
+        padding: 0 12.5px;
+    }
+
+    .tb-tab::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 25%;
+        opacity: 0;
+        height: 2px;
+        background-color: var(--accent);
+        transition: var(--t-fast);
+    }
+
+    .tb-tab.active {
+        opacity: 1;
+    }
+
+    .tb-tab.active::after {
+        width: 50%;
+        opacity: 1;
     }
 
     .wc {
         display: flex;
-        align-items: center;
+        align-items: stretch;
         -webkit-app-region: no-drag;
         pointer-events: all;
         margin-left: auto;
+        height: 100%;
 
         --wails-draggable: no-drag;
     }
