@@ -55,50 +55,56 @@
 </script>
 
 <div class="titlebar" style="--wails-draggable: drag;">
-    <div class="tb-title">
-        <div class="tb-title-icon">
-            <MusicNoteIcon weight="fill" />
+    <div id="tb-left">
+        <div class="tb-title">
+            <div class="tb-title-icon">
+                <MusicNoteIcon weight="fill" />
+            </div>
+            YAMP
         </div>
-        YAMP
+        <div class="tb-separator"></div>
+        <div class="tb-tabs">
+            {#each tabs as tab}
+                {@const isActive = tab.id === selectedTab}
+                <button
+                    class="tb-tab"
+                    class:active={isActive}
+                    onclick={() => {
+                        on_select(tab.id);
+                        selectedTab = tab.id;
+                    }}
+                >
+                    {tab.label}
+                </button>
+            {/each}
+        </div>
     </div>
-    <div class="tb-separator"></div>
-    <div class="tb-tabs">
-        {#each tabs as tab}
-            {@const isActive = tab.id === selectedTab}
-            <button
-                class="tb-tab"
-                class:active={isActive}
-                onclick={() => {
-                    on_select(tab.id);
-                    selectedTab = tab.id;
-                }}
-            >
-                {tab.label}
+
+    <div id="tb-right">
+        <div class="wc">
+            <button class="wc-btn wc-minimize" onclick={Window.Minimise}>
+                <MinusIcon />
             </button>
-        {/each}
-    </div>
 
-    <div class="wc">
-        <button class="wc-btn wc-minimize" onclick={Window.Minimise}>
-            <MinusIcon />
-        </button>
+            <button class="wc-btn wc-maximize" onclick={toggle}>
+                {#if isMaximized}
+                    <CardsIcon />
+                {:else}
+                    <SquareIcon />
+                {/if}
+            </button>
 
-        <button class="wc-btn wc-maximize" onclick={toggle}>
-            {#if isMaximized}
-                <CardsIcon />
-            {:else}
-                <SquareIcon />
-            {/if}
-        </button>
-
-        <button class="wc-btn wc-close" onclick={Window.Close}>
-            <XIcon />
-        </button>
+            <button class="wc-btn wc-close" onclick={Window.Close}>
+                <XIcon />
+            </button>
+        </div>
     </div>
 </div>
 
 <style>
     .titlebar {
+        contain: layout style;
+
         height: var(--tb-h);
         flex-shrink: 0;
         display: flex;
@@ -109,6 +115,21 @@
         border-bottom: 1px solid var(--border);
         user-select: none;
         z-index: 200;
+        box-sizing: border-box;
+    }
+
+    #tb-left {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 100%;
+    }
+
+    #tb-right {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        height: 100%;
     }
 
     .tb-title {
@@ -153,12 +174,13 @@
         position: absolute;
         bottom: 0;
         left: 50%;
-        transform: translateX(-50%);
-        width: 25%;
-        opacity: 0;
+        width: 50%;
         height: 2px;
         background-color: var(--accent);
+        transform: translateX(-50%) scaleX(0.5);
+        opacity: 0;
         transition: var(--t-fast);
+        transform-origin: center;
     }
 
     .tb-tab.active {
@@ -166,7 +188,7 @@
     }
 
     .tb-tab.active::after {
-        width: 50%;
+        transform: translateX(-50%) scaleX(1);
         opacity: 1;
     }
 
