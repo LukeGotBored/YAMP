@@ -4,7 +4,6 @@ import (
 	"embed"
 	_ "embed"
 	"log"
-
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -12,11 +11,10 @@ import (
 var assets embed.FS
 
 func init() {
-
+	println("Starting YAMP...")
 }
 
 func main() {
-
 	app := application.New(application.Options{
 		Name:        "YAMP",
 		Description: "Yet Another Music Player",
