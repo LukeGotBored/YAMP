@@ -4,6 +4,9 @@ import (
 	"embed"
 	_ "embed"
 	"log"
+
+	"changeme/internal/appevents"
+	"changeme/internal/debug"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -15,17 +18,25 @@ func init() {
 }
 
 func main() {
-	app := application.New(application.Options{
+	opts := application.Options{
 		Name:        "YAMP",
 		Description: "Yet Another Music Player",
-		Services:    []application.Service{},
+		PanicHandler: func(details *application.PanicDetails) {
+			log.Printf("Recovered backend panic: %v", details.Error)
+			appevents.EmitRecoveredPanic(details)
+		},
+		Services: []application.Service{
+			application.NewService(&debug.Service{}),
+		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
-	})
+	}
+
+	app := application.New(opts)
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title: "YAMP",
@@ -42,10 +53,6 @@ func main() {
 		MinHeight:        500,
 		Frameless:        true,
 	})
-
-	go func() {
-
-	}()
 
 	err := app.Run()
 
