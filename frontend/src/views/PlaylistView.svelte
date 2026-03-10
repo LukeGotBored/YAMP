@@ -1,6 +1,6 @@
 <script lang="ts">
 </script>
 
-<main>This is the Charlie Kirk</main>
+<main>This is the playlist view</main>
 
 <style></style>
