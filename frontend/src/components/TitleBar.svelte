@@ -10,16 +10,28 @@
     import { onMount } from "svelte";
     import { ItemTab } from "./TitleBar";
 
+    export interface DropdownOption {
+        label?: string;
+        action?: () => void;
+        icon?: any;
+        type?: "text" | "separator";
+    }
+
     const {
         on_select,
         tabs = [],
+        dropdownOptions = [],
     }: {
         on_select: (item_name: string) => void;
         tabs?: ItemTab[];
+        dropdownOptions?: DropdownOption[];
     } = $props();
 
     let isMaximized = $state(false);
-    let selectedTab = $derived(tabs ? tabs[0].id : "");
+    let selectedTab = $derived(tabs.length > 0 ? tabs[0].id : "");
+
+    let isDropdownOpen = $state(false);
+    let titleContainer: HTMLElement;
 
     export function currentTab() {
         return selectedTab;
@@ -43,7 +55,7 @@
         };
     });
 
-    async function toggle() {
+    async function toggleWindow() {
         if (isMaximized) {
             isMaximized = false;
             await Window.UnMaximise();
@@ -52,17 +64,62 @@
             await Window.Maximise();
         }
     }
+
+    function handleOutsideClick(e: MouseEvent) {
+        if (
+            isDropdownOpen &&
+            titleContainer &&
+            !titleContainer.contains(e.target as Node)
+        ) {
+            isDropdownOpen = false;
+        }
+    }
 </script>
 
+<svelte:window onclick={handleOutsideClick} />
+
 <div class="titlebar" style="--wails-draggable: drag;">
-    <div id="tb-left">
-        <div class="tb-title">
-            <div class="tb-title-icon">
-                <MusicNoteIcon weight="fill" />
-            </div>
-            YAMP
+    <div class="tb-left">
+        <div class="tb-title" bind:this={titleContainer}>
+            <button
+                class="tb-title-btn"
+                onclick={() => (isDropdownOpen = !isDropdownOpen)}
+            >
+                <div class="tb-title-icon">
+                    <MusicNoteIcon weight="fill" />
+                </div>
+                YAMP
+            </button>
+
+            {#if isDropdownOpen}
+                <div class="tb-dd">
+                    {#each dropdownOptions as opt}
+                        {#if opt.type === "separator"}
+                            <div class="tb-dd-separator"></div>
+                        {:else}
+                            <button
+                                class="tb-dd-opt"
+                                onclick={() => {
+                                    opt.action?.();
+                                    isDropdownOpen = false;
+                                }}
+                            >
+                                {#if opt.icon}
+                                    {@const Icon = opt.icon}
+                                    <div class="dd-opt-icon">
+                                        <Icon />
+                                    </div>
+                                {/if}
+                                {opt.label}
+                            </button>
+                        {/if}
+                    {/each}
+                </div>
+            {/if}
         </div>
+
         <div class="tb-separator"></div>
+
         <div class="tb-tabs">
             {#each tabs as tab}
                 {@const isActive = tab.id === selectedTab}
@@ -80,13 +137,13 @@
         </div>
     </div>
 
-    <div id="tb-right">
+    <div class="tb-right">
         <div class="wc">
             <button class="wc-btn wc-minimize" onclick={Window.Minimise}>
                 <MinusIcon />
             </button>
 
-            <button class="wc-btn wc-maximize" onclick={toggle}>
+            <button class="wc-btn wc-maximize" onclick={toggleWindow}>
                 {#if isMaximized}
                     <CardsIcon />
                 {:else}
@@ -104,7 +161,6 @@
 <style>
     .titlebar {
         contain: layout style;
-
         height: var(--tb-h);
         flex-shrink: 0;
         display: flex;
@@ -118,28 +174,45 @@
         box-sizing: border-box;
     }
 
-    #tb-left {
+    .tb-left,
+    .tb-right {
         display: flex;
-        justify-content: flex-start;
         align-items: center;
         height: 100%;
     }
 
-    #tb-right {
-        display: flex;
+    .tb-left {
+        justify-content: flex-start;
+    }
+    .tb-right {
         justify-content: flex-end;
-        align-items: center;
-        height: 100%;
     }
 
     .tb-title {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        --wails-draggable: no-drag;
+    }
+
+    .tb-title-btn {
         padding: 0 20px;
         display: flex;
-        justify-content: flex-start;
         align-items: center;
-        line-height: 1;
         gap: 10px;
         font-weight: 600;
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        height: 100%;
+        transition: background 0.1s;
+    }
+
+    .tb-title-btn:hover {
+        background: rgba(255, 255, 255, 0.05);
     }
 
     .tb-title-icon {
@@ -147,11 +220,67 @@
         padding: 2px;
         border-radius: 4px;
         font-size: 12px;
+        display: flex;
+    }
+
+    .tb-dd {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 5px;
+        background-color: var(--bg-tb);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        min-width: 200px;
+        padding: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        z-index: 300;
+        -webkit-app-region: no-drag;
+    }
+
+    .tb-dd-separator {
+        height: 1px;
+        background-color: var(--border);
+        margin: 5px 0;
+    }
+
+    .tb-dd-opt {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        padding: 8px 12px;
+        text-align: left;
+        cursor: pointer;
+        font-size: 13px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition:
+            background 0.1s,
+            color 0.1s;
+    }
+
+    .tb-dd-opt:hover {
+        background-color: var(--accent);
+        color: #fff;
+    }
+
+    .dd-opt-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        opacity: 0.8;
+    }
+    .tb-dd-opt:hover .dd-opt-icon {
+        opacity: 1;
     }
 
     .tb-separator {
         height: 50%;
-        border: var(--border) 1px solid;
+        border-left: 1px solid var(--border);
     }
 
     .tb-tabs {
@@ -167,6 +296,10 @@
         position: relative;
         transition: var(--t-fast);
         padding: 0 12.5px;
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
     }
 
     .tb-tab::after {
@@ -186,7 +319,6 @@
     .tb-tab.active {
         opacity: 1;
     }
-
     .tb-tab.active::after {
         transform: translateX(-50%) scaleX(1);
         opacity: 1;
@@ -199,7 +331,6 @@
         pointer-events: all;
         margin-left: auto;
         height: 100%;
-
         --wails-draggable: no-drag;
     }
 
