@@ -1,35 +1,27 @@
 <script lang="ts">
-    import {
-        MinusIcon,
-        XIcon,
-        SquareIcon,
-        CardsIcon,
-        MusicNoteIcon,
-    } from "phosphor-svelte";
-    import { Window, Events } from "@wailsio/runtime";
-    import { onMount } from "svelte";
-    import { ItemTab } from "./TitleBar";
+    import { MusicNoteIcon } from "phosphor-svelte";
+    import WindowControls from "./WindowControls.svelte";
+    import type { ItemTab } from "./TitleBar";
 
     export interface DropdownOption {
         label?: string;
         action?: () => void;
         icon?: any;
         type?: "text" | "separator";
-        shortcut?: string;
+        shortcut?: string | string[];
     }
 
-    const {
+    let {
         onSelect,
         tabs = [],
         dropdownOptions = [],
+        selectedTab = $bindable(""),
     }: {
         onSelect: (itemName: string) => void;
         tabs?: ItemTab[];
         dropdownOptions?: DropdownOption[];
+        selectedTab?: string;
     } = $props();
-
-    let isMaximized = $state(false);
-    let selectedTab = $state(tabs.length > 0 ? tabs[0].id : "");
 
     let isDropdownOpen = $state(false);
     let titleContainer: HTMLElement;
@@ -38,33 +30,11 @@
         return selectedTab;
     }
 
-    onMount(() => {
-        Window.IsMaximised().then((state) => (isMaximized = state));
-
-        const unsubscribeMaximize = Events.On(
-            "common:WindowMaximise",
-            () => (isMaximized = true),
-        );
-        const unsubscribeRestore = Events.On(
-            "common:WindowRestore",
-            () => (isMaximized = false),
-        );
-
-        return () => {
-            unsubscribeMaximize();
-            unsubscribeRestore();
-        };
-    });
-
-    async function toggleWindow() {
-        if (isMaximized) {
-            isMaximized = false;
-            await Window.UnMaximise();
-        } else {
-            isMaximized = true;
-            await Window.Maximise();
+    $effect(() => {
+        if (!selectedTab && tabs.length > 0) {
+            selectedTab = tabs[0].id;
         }
-    }
+    });
 
     function handleOutsideClick(event: MouseEvent) {
         if (
@@ -76,8 +46,21 @@
         }
     }
 
-    function isShortcutMatch(event: KeyboardEvent, shortcut: string) {
-        const parts = shortcut.split("+").map((p) => p.trim().toLowerCase());
+    function formatShortcut(shortcut?: string | string[]) {
+        if (!shortcut) return "";
+
+        const primary = Array.isArray(shortcut) ? shortcut[0] : shortcut;
+
+        return primary
+            .replace(/cmd|meta/gi, "Ctrl")
+            .replace(/win/gi, "Win")
+            .split("+")
+            .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+            .join("+");
+    }
+
+    function checkSingleShortcut(event: KeyboardEvent, shortcutStr: string) {
+        const parts = shortcutStr.split("+").map((p) => p.trim().toLowerCase());
 
         const ctrl = parts.includes("ctrl");
         const shift = parts.includes("shift");
@@ -87,10 +70,11 @@
             parts.includes("meta") ||
             parts.includes("win");
 
-        const key = parts.find(
+        const keys = parts.filter(
             (p) => !["ctrl", "shift", "alt", "cmd", "meta", "win"].includes(p),
         );
 
+        const key = keys[0];
         if (!key) return false;
 
         if (
@@ -99,14 +83,26 @@
             event.altKey === alt &&
             event.metaKey === meta
         ) {
+            const pressedKey = event.key.toLowerCase();
+            const pressedCode = event.code.toLowerCase();
+
             return (
-                event.key.toLowerCase() === key ||
-                event.code.toLowerCase() === key ||
-                event.code.toLowerCase() === `key${key}`
+                pressedKey === key ||
+                pressedCode === key ||
+                pressedCode === `key${key}` ||
+                (key === "space" && pressedKey === " ")
             );
         }
 
         return false;
+    }
+
+    function isShortcutMatch(
+        event: KeyboardEvent,
+        shortcut: string | string[],
+    ) {
+        const combinations = Array.isArray(shortcut) ? shortcut : [shortcut];
+        return combinations.some((combo) => checkSingleShortcut(event, combo));
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -165,7 +161,7 @@
 
                                 {#if option.shortcut}
                                     <span class="tb-dd-opt-sc">
-                                        {option.shortcut}
+                                        {formatShortcut(option.shortcut)}
                                     </span>
                                 {/if}
                             </button>
@@ -180,38 +176,24 @@
         <div class="tb-tabs">
             {#each tabs as tab}
                 {@const isActive = tab.id === selectedTab}
-                <button
-                    class="tb-tab"
-                    class:active={isActive}
-                    onclick={() => {
-                        onSelect(tab.id);
-                        selectedTab = tab.id;
-                    }}
-                >
-                    {tab.label}
-                </button>
+                {#if !tab.hidden || isActive}
+                    <button
+                        class="tb-tab"
+                        class:active={isActive}
+                        onclick={() => {
+                            onSelect(tab.id);
+                            selectedTab = tab.id;
+                        }}
+                    >
+                        {tab.label}
+                    </button>
+                {/if}
             {/each}
         </div>
     </div>
 
     <div class="tb-right">
-        <div class="wc">
-            <button class="wc-btn wc-min" onclick={Window.Minimise}>
-                <MinusIcon />
-            </button>
-
-            <button class="wc-btn wc-max" onclick={toggleWindow}>
-                {#if isMaximized}
-                    <CardsIcon />
-                {:else}
-                    <SquareIcon />
-                {/if}
-            </button>
-
-            <button class="wc-btn wc-cls" onclick={Window.Close}>
-                <XIcon />
-            </button>
-        </div>
+        <WindowControls />
     </div>
 </div>
 
@@ -290,7 +272,7 @@
         border-radius: 8px;
         display: flex;
         flex-direction: column;
-        min-width: 250px;
+        width: max-content;
         padding: 6px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         z-index: 300;
@@ -325,6 +307,9 @@
         margin-left: auto;
         opacity: 0.5;
         font-size: 11px;
+        font-family: inherit;
+        letter-spacing: 0.5px;
+        padding-left: 25px;
     }
 
     .tb-dd-opt:hover {
@@ -395,39 +380,4 @@
         opacity: 1;
     }
 
-    .wc {
-        display: flex;
-        align-items: stretch;
-        -webkit-app-region: no-drag;
-        pointer-events: all;
-        margin-left: auto;
-        height: 100%;
-        --wails-draggable: no-drag;
-    }
-
-    .wc-btn {
-        width: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-secondary);
-        transition:
-            background 0.1s,
-            color 0.1s;
-        -webkit-app-region: no-drag;
-        cursor: pointer;
-        pointer-events: all;
-        background: none;
-        border: none;
-    }
-
-    .wc-btn:hover {
-        background: rgba(255, 255, 255, 0.07);
-        color: var(--text-primary);
-    }
-
-    .wc-cls:hover {
-        background: var(--accent);
-        color: #fff;
-    }
 </style>
