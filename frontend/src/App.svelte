@@ -10,11 +10,15 @@
     import SettingsView from "./views/SettingsView.svelte";
     import { ItemTab } from "./components/TitleBar";
 
-    import { ArrowsClockwiseIcon, InfoIcon, XIcon } from "phosphor-svelte";
+    import {
+        ArrowsClockwiseIcon,
+        InfoIcon,
+        XIcon,
+        BookIcon,
+    } from "phosphor-svelte";
 
     let titleBar: TitleBar;
 
-    // Optional: Sync selection if you need to access it outside of the views
     function select_tab(item_name: string) {
         console.log(`Tab changed to: ${item_name}`);
     }
@@ -29,15 +33,24 @@
 
     const appMenu: DropdownOption[] = [
         {
-            label: "Check for Updates...",
-            icon: ArrowsClockwiseIcon,
-            action: () => console.log("Updating..."),
-            type: "text",
-        },
-        {
             label: "About YAMP",
             icon: InfoIcon,
             action: () => alert("YAMP v1.0.0"),
+        },
+        {
+            label: "Documentation",
+            icon: BookIcon,
+            action: () => alert("Documentation is not available yet."),
+            shortcut: "F1",
+        },
+        {
+            label: "Check for Updates...",
+            icon: ArrowsClockwiseIcon,
+            action: () =>
+                alert(
+                    "No updates available. (not even sure where to check, tbh)",
+                ),
+            type: "text",
         },
         {
             type: "separator",
@@ -45,7 +58,7 @@
         {
             label: "Quit",
             icon: XIcon,
-            action: () => Window.Close(),
+            action: () => Window.Close(), // TODO: maybe add a confirmation dialog here?
         },
     ];
 </script>
@@ -53,7 +66,7 @@
 <div class="main">
     <TitleBar
         bind:this={titleBar}
-        on_select={select_tab}
+        onSelect={select_tab}
         {tabs}
         dropdownOptions={appMenu}
     />

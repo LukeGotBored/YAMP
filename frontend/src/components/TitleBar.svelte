@@ -15,20 +15,21 @@
         action?: () => void;
         icon?: any;
         type?: "text" | "separator";
+        shortcut?: string;
     }
 
     const {
-        on_select,
+        onSelect,
         tabs = [],
         dropdownOptions = [],
     }: {
-        on_select: (item_name: string) => void;
+        onSelect: (itemName: string) => void;
         tabs?: ItemTab[];
         dropdownOptions?: DropdownOption[];
     } = $props();
 
     let isMaximized = $state(false);
-    let selectedTab = $derived(tabs.length > 0 ? tabs[0].id : "");
+    let selectedTab = $state(tabs.length > 0 ? tabs[0].id : "");
 
     let isDropdownOpen = $state(false);
     let titleContainer: HTMLElement;
@@ -40,18 +41,18 @@
     onMount(() => {
         Window.IsMaximised().then((state) => (isMaximized = state));
 
-        const unsubMax = Events.On(
+        const unsubscribeMaximize = Events.On(
             "common:WindowMaximise",
             () => (isMaximized = true),
         );
-        const unsubRestore = Events.On(
+        const unsubscribeRestore = Events.On(
             "common:WindowRestore",
             () => (isMaximized = false),
         );
 
         return () => {
-            unsubMax();
-            unsubRestore();
+            unsubscribeMaximize();
+            unsubscribeRestore();
         };
     });
 
@@ -65,20 +66,70 @@
         }
     }
 
-    function handleOutsideClick(e: MouseEvent) {
+    function handleOutsideClick(event: MouseEvent) {
         if (
             isDropdownOpen &&
             titleContainer &&
-            !titleContainer.contains(e.target as Node)
+            !titleContainer.contains(event.target as Node)
         ) {
             isDropdownOpen = false;
         }
     }
+
+    function isShortcutMatch(event: KeyboardEvent, shortcut: string) {
+        const parts = shortcut.split("+").map((p) => p.trim().toLowerCase());
+
+        const ctrl = parts.includes("ctrl");
+        const shift = parts.includes("shift");
+        const alt = parts.includes("alt");
+        const meta =
+            parts.includes("cmd") ||
+            parts.includes("meta") ||
+            parts.includes("win");
+
+        const key = parts.find(
+            (p) => !["ctrl", "shift", "alt", "cmd", "meta", "win"].includes(p),
+        );
+
+        if (!key) return false;
+
+        if (
+            event.ctrlKey === ctrl &&
+            event.shiftKey === shift &&
+            event.altKey === alt &&
+            event.metaKey === meta
+        ) {
+            return (
+                event.key.toLowerCase() === key ||
+                event.code.toLowerCase() === key ||
+                event.code.toLowerCase() === `key${key}`
+            );
+        }
+
+        return false;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+        for (const option of dropdownOptions) {
+            if (
+                option.type !== "separator" &&
+                option.shortcut &&
+                option.action
+            ) {
+                if (isShortcutMatch(event, option.shortcut)) {
+                    event.preventDefault();
+                    option.action();
+                    isDropdownOpen = false;
+                    return;
+                }
+            }
+        }
+    }
 </script>
 
-<svelte:window onclick={handleOutsideClick} />
+<svelte:window onclick={handleOutsideClick} onkeydown={handleKeyDown} />
 
-<div class="titlebar" style="--wails-draggable: drag;">
+<div class="tb" style="--wails-draggable: drag;">
     <div class="tb-left">
         <div class="tb-title" bind:this={titleContainer}>
             <button
@@ -93,24 +144,30 @@
 
             {#if isDropdownOpen}
                 <div class="tb-dd">
-                    {#each dropdownOptions as opt}
-                        {#if opt.type === "separator"}
-                            <div class="tb-dd-separator"></div>
+                    {#each dropdownOptions as option}
+                        {#if option.type === "separator"}
+                            <div class="tb-dd-sep"></div>
                         {:else}
                             <button
                                 class="tb-dd-opt"
                                 onclick={() => {
-                                    opt.action?.();
+                                    option.action?.();
                                     isDropdownOpen = false;
                                 }}
                             >
-                                {#if opt.icon}
-                                    {@const Icon = opt.icon}
-                                    <div class="dd-opt-icon">
+                                {#if option.icon}
+                                    {@const Icon = option.icon}
+                                    <div class="tb-dd-opt-icon">
                                         <Icon />
                                     </div>
                                 {/if}
-                                {opt.label}
+                                {option.label}
+
+                                {#if option.shortcut}
+                                    <span class="tb-dd-opt-sc">
+                                        {option.shortcut}
+                                    </span>
+                                {/if}
                             </button>
                         {/if}
                     {/each}
@@ -118,7 +175,7 @@
             {/if}
         </div>
 
-        <div class="tb-separator"></div>
+        <div class="tb-sep"></div>
 
         <div class="tb-tabs">
             {#each tabs as tab}
@@ -127,7 +184,7 @@
                     class="tb-tab"
                     class:active={isActive}
                     onclick={() => {
-                        on_select(tab.id);
+                        onSelect(tab.id);
                         selectedTab = tab.id;
                     }}
                 >
@@ -139,11 +196,11 @@
 
     <div class="tb-right">
         <div class="wc">
-            <button class="wc-btn wc-minimize" onclick={Window.Minimise}>
+            <button class="wc-btn wc-min" onclick={Window.Minimise}>
                 <MinusIcon />
             </button>
 
-            <button class="wc-btn wc-maximize" onclick={toggleWindow}>
+            <button class="wc-btn wc-max" onclick={toggleWindow}>
                 {#if isMaximized}
                     <CardsIcon />
                 {:else}
@@ -151,7 +208,7 @@
                 {/if}
             </button>
 
-            <button class="wc-btn wc-close" onclick={Window.Close}>
+            <button class="wc-btn wc-cls" onclick={Window.Close}>
                 <XIcon />
             </button>
         </div>
@@ -159,7 +216,7 @@
 </div>
 
 <style>
-    .titlebar {
+    .tb {
         contain: layout style;
         height: var(--tb-h);
         flex-shrink: 0;
@@ -184,6 +241,7 @@
     .tb-left {
         justify-content: flex-start;
     }
+
     .tb-right {
         justify-content: flex-end;
     }
@@ -232,14 +290,14 @@
         border-radius: 8px;
         display: flex;
         flex-direction: column;
-        min-width: 200px;
+        min-width: 250px;
         padding: 6px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         z-index: 300;
         -webkit-app-region: no-drag;
     }
 
-    .tb-dd-separator {
+    .tb-dd-sep {
         height: 1px;
         background-color: var(--border);
         margin: 5px 0;
@@ -256,10 +314,17 @@
         border-radius: 4px;
         display: flex;
         align-items: center;
+        flex-direction: row;
         gap: 12px;
         transition:
             background 0.1s,
             color 0.1s;
+    }
+
+    .tb-dd-opt-sc {
+        margin-left: auto;
+        opacity: 0.5;
+        font-size: 11px;
     }
 
     .tb-dd-opt:hover {
@@ -267,18 +332,23 @@
         color: #fff;
     }
 
-    .dd-opt-icon {
+    .tb-dd-opt:hover .tb-dd-opt-sc {
+        opacity: 0.8;
+    }
+
+    .tb-dd-opt-icon {
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 16px;
         opacity: 0.8;
     }
-    .tb-dd-opt:hover .dd-opt-icon {
+
+    .tb-dd-opt:hover .tb-dd-opt-icon {
         opacity: 1;
     }
 
-    .tb-separator {
+    .tb-sep {
         height: 50%;
         border-left: 1px solid var(--border);
     }
@@ -319,6 +389,7 @@
     .tb-tab.active {
         opacity: 1;
     }
+
     .tb-tab.active::after {
         transform: translateX(-50%) scaleX(1);
         opacity: 1;
@@ -355,7 +426,7 @@
         color: var(--text-primary);
     }
 
-    .wc-close:hover {
+    .wc-cls:hover {
         background: var(--accent);
         color: #fff;
     }
