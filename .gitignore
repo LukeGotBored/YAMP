@@ -6,3 +6,6 @@ frontend/bindings
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 frontend/package-lock.json
+frontend/bun.lock
+.gitmessage
+list_tracks.txt
