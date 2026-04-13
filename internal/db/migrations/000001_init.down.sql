@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS playlist_tracks;
+DROP TABLE IF EXISTS playlists;
+DROP INDEX IF EXISTS idx_tracks_artist;
+DROP INDEX IF EXISTS idx_tracks_album;
+DROP TABLE IF EXISTS tracks;
+DROP TABLE IF EXISTS albums;
+DROP TABLE IF EXISTS artists;
