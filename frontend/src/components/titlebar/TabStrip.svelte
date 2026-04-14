@@ -5,9 +5,11 @@
     let {
         tabs = [],
         selectedTab = $bindable(""),
+        side = "left",
     }: {
         tabs?: ItemTab[];
         selectedTab?: string;
+        side?: "left" | "right";
     } = $props();
 
     let tabEls = $state<HTMLButtonElement[]>([]);
@@ -15,15 +17,6 @@
     let visibleTabs = $derived.by(() =>
         tabs.filter((tab) => !tab.hidden || tab.id === selectedTab),
     );
-
-    $effect(() => {
-        if (
-            visibleTabs.length > 0 &&
-            !visibleTabs.some((tab) => tab.id === selectedTab)
-        ) {
-            selectedTab = visibleTabs[0].id;
-        }
-    });
 
     function focusTab(index: number) {
         if (visibleTabs.length === 0) return;
@@ -58,9 +51,18 @@
     }
 </script>
 
-<div class="tab-strip" role="tablist" aria-label="Library sections">
+<div
+    class="tab-strip"
+    class:align-right={side === "right"}
+    role="tablist"
+    aria-label={side === "right" ? "Secondary sections" : "Primary sections"}
+>
     {#each visibleTabs as tab, index}
         {@const isActive = tab.id === selectedTab}
+        {@const Icon = tab.icon}
+        {@const iconWeight = isActive
+            ? (tab.activeIconWeight ?? "fill")
+            : (tab.iconWeight ?? "regular")}
         <button
             bind:this={tabEls[index]}
             id={tabButtonId(tab.id)}
@@ -70,11 +72,20 @@
             role="tab"
             tabindex={isActive ? 0 : -1}
             aria-selected={isActive}
+            aria-label={tab.ariaLabel ?? tab.label ?? tab.id}
             aria-controls={tabPanelId(tab.id)}
             onclick={() => (selectedTab = tab.id)}
             onkeydown={(e) => onTabKeyDown(index, e)}
         >
-            <span class="tab-label">{tab.label}</span>
+            {#if Icon}
+                <span class="tab-icon" aria-hidden="true">
+                    <Icon size={tab.iconSize ?? 15} weight={iconWeight} />
+                </span>
+                <!-- TODO: not sure if I should keep this -->
+            {/if}
+            {#if tab.label}
+                <span class="tab-label">{tab.label}</span>
+            {/if}
         </button>
     {/each}
 </div>
@@ -85,8 +96,12 @@
         align-items: stretch;
         height: 100%;
         min-width: 0;
-        margin-left: 12px;
+        gap: 2px;
         --wails-draggable: no-drag;
+    }
+
+    .tab-strip.align-right {
+        justify-content: flex-end;
     }
 
     .tab {
@@ -94,9 +109,10 @@
         position: relative;
         min-width: 0;
         height: 100%;
-        padding: 0 12.5px;
+        padding: 0 10px;
         display: inline-flex;
         align-items: center;
+        gap: 7px;
         color: inherit;
         outline-color: var(--accent);
         outline-offset: -2px;
@@ -141,5 +157,13 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .tab-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        line-height: 1;
     }
 </style>

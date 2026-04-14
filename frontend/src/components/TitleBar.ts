@@ -17,8 +17,14 @@ export type DropdownOption = DropdownItem | DropdownSeparator;
 
 export interface ItemTab {
     id: string;
-    label: string;
+    label?: string;
+    ariaLabel?: string;
     view: any;
+    placement?: "left" | "right";
+    icon?: Component<any>;
+    iconSize?: number;
+    iconWeight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
+    activeIconWeight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
     hidden?: boolean;
 }
 

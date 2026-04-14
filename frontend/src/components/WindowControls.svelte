@@ -84,6 +84,10 @@
         border: none;
     }
 
+    .wc-cls {
+        font-size: 1.2em;
+    }
+
     .wc-btn:hover {
         background: rgba(255, 255, 255, 0.07);
         color: var(--text-primary);

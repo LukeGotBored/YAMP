@@ -33,22 +33,23 @@
         TerminalIcon,
         ArrowClockwiseIcon,
         GearIcon,
+        MusicNotesIcon,
+        VinylRecordIcon,
+        MicrophoneStageIcon,
+        QueueIcon,
     } from "phosphor-svelte";
 
     let selectedTab = $state("library");
     let fatalError = $state<string | null>(null);
 
     onMount(() => {
-        // Global Frontend Error Catching
         window.addEventListener("unhandledrejection", (e) => {
             console.error("Unhandled promise rejection:", e.reason);
-            // We can decide to show an error view or log locally
         });
         window.addEventListener("error", (e) => {
             console.error("Global error:", e.error);
         });
 
-        // Backend Events
         const unsubPanic = Events.On(BACKEND_PANIC_EVENT, (event) => {
             fatalError = formatBackendError("[PANIC]", event.data);
         });
@@ -79,7 +80,6 @@ ${stack || "No stack trace available."}
 
         const handleGlobalError = (event: ErrorEvent) => {
             const msg = event.message || "";
-            // Ignore benign browser loops and dev-server/extension injection errors
             if (
                 msg.includes("ResizeObserver") ||
                 msg.includes("custom.js") ||
@@ -121,12 +121,12 @@ ${stack || "No stack trace available."}
     });
 
     const tabs: ItemTab[] = [
-        { id: "library", label: "Library", view: LibraryView },
-        { id: "albums", label: "Albums", view: AlbumsView },
-        { id: "artists", label: "Artists", view: ArtistsView },
-        { id: "playlists", label: "Playlists", view: PlaylistView },
-        { id: "debug", label: "Developer", view: DebugView, hidden: true },
-        { id: "settings", label: "Settings", view: SettingsView, hidden: true },
+        { id: "library", label: "Library", view: LibraryView, icon: MusicNotesIcon },
+        { id: "albums", label: "Albums", view: AlbumsView, icon: VinylRecordIcon },
+        { id: "artists", label: "Artists", view: ArtistsView, icon: MicrophoneStageIcon },
+        { id: "playlists", label: "Playlists", view: PlaylistView, icon: QueueIcon },
+        { id: "debug", ariaLabel: "Developer", view: DebugView, icon: BugIcon, placement: "right", hidden: false },
+        { id: "settings", ariaLabel: "Settings", view: SettingsView, icon: GearIcon, placement: "right", hidden: false },
     ];
 
     let activeTab = $derived.by(
