@@ -269,7 +269,7 @@
         if (result.error) {
              console.error("Failed to load tracks", result.error.message);
         } else {
-             tracks = result.data || [];
+             tracks = (result.data || []).filter((t): t is Track => t !== null);
              sortTracksList(sortColumn, true);
         }
         
@@ -335,7 +335,7 @@
 
     {#if isLoading}
         <div class="empty-state">
-            <p>Loading library...</p>
+            <div class="loader"></div>
         </div>
     {:else if tracks.length === 0}
         <div class="empty-state">
